@@ -11,9 +11,9 @@ var Client *redis.Client
 
 func Connect() error {
 	Client = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("hyperfast-lace-crowded-33721.db.redis.io:11381"),
-		Username: os.Getenv("Easu chandra reens"),
-		Password: os.Getenv("706ksHjuieGWoZ85B2pLdIbxdG0q9cEp"),
+		Addr:     os.Getenv("REDIS_ADDR"),
+		Username: os.Getenv("REDIS_USERNAME"),
+		Password: os.Getenv("REDIS_PASSWORD"),
 	})
 
 	_, err := Client.Ping(context.Background()).Result()
