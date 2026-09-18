@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"live-polling-tool/auth"
 	"live-polling-tool/database"
@@ -15,9 +16,10 @@ import (
 )
 
 func main() {
-	// Load environment variables from .env
+	// Load .env locally.
+	// On Render, environment variables are provided by Render.
 	if err := godotenv.Load(); err != nil {
-		panic("Error loading .env file")
+		fmt.Println("No .env file found. Using environment variables.")
 	}
 
 	// Connect to Redis
@@ -36,7 +38,7 @@ func main() {
 
 	fmt.Println("MongoDB connected successfully!")
 
-	// Select database and collections
+	// MongoDB database and collections
 	database := client.Database("live_polling")
 
 	pollCollection := database.Collection("polls")
@@ -53,13 +55,18 @@ func main() {
 	// Create Gin router
 	router := gin.Default()
 
-	// CORS
+	// CORS middleware
 	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set(
+			"Access-Control-Allow-Origin",
+			"*",
+		)
+
 		c.Writer.Header().Set(
 			"Access-Control-Allow-Methods",
 			"GET, POST, PUT, DELETE, OPTIONS",
 		)
+
 		c.Writer.Header().Set(
 			"Access-Control-Allow-Headers",
 			"Content-Type, Authorization",
@@ -88,7 +95,7 @@ func main() {
 		})
 	})
 
-	// Authentication routes
+	// Authentication
 	router.POST("/api/register", auth.Register)
 	router.POST("/api/login", auth.Login)
 
@@ -122,16 +129,27 @@ func main() {
 		pollHandler.VotePoll,
 	)
 
-	// Live polling using Redis Pub/Sub + SSE
+	// Server-Sent Events for live polling
 	router.GET(
 		"/api/polls/:id/live",
 		handlers.LivePoll,
 	)
 
-	// Start server
-	fmt.Println("Server starting on http://localhost:8081")
+	// Render provides the PORT environment variable.
+	// Locally, we use port 8081.
+	port := os.Getenv("PORT")
 
-	err = router.Run(":8081")
+	if port == "" {
+		port = "8081"
+	}
+
+	fmt.Println("Server starting on port " + port)
+
+	// IMPORTANT:
+	// Render requires the server to listen on 0.0.0.0
+	// instead of localhost.
+	err = router.Run("0.0.0.0:" + port)
+
 	if err != nil {
 		panic(err)
 	}
